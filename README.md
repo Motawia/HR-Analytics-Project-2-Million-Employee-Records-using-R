@@ -15,35 +15,36 @@ The dataset used in this project is publicly available on Kaggle:
 
 🔍 Key Analyses (Q1–Q15)
 
-Distribution of Employee Status (Active, Resigned, Retired, Terminated)
+1.	Distribution of Employee Status (Active, Resigned, Retired, Terminated)
 
-Distribution of Work Modes (On-site vs Remote)
+2.	Distribution of Work Modes (On-site vs Remote)
 
-Number of Employees in Each Department
+3.	Number of Employees in Each Department
 
-Average Salary by Department
+4.	Average Salary by Department
 
-Job Title with the Highest Average Salary
+5.	Job Title with the Highest Average Salary
 
-Average Salary by Department & Job Title
+6.	Average Salary by Department & Job Title
 
-Resigned & Terminated Employees per Department
+7.	Resigned & Terminated Employees per Department
 
-Salary vs. Years of Experience (with and without outliers)
+8.	Salary vs. Years of Experience (with and without outliers)
 
-Average Performance Rating by Department
+9.	Average Performance Rating by Department
 
-Country with the Highest Employee Concentration
+10.	Country with the Highest Employee Concentration
 
-Correlation between Performance Rating and Salary
+11.	Correlation between Performance Rating and Salary
 
-Hiring Trends Over Time (per year)
+12.	Hiring Trends Over Time (per year)
 
-Salary Comparison: Remote vs On-site (t-test + effect size)
+13.	Salary Comparison: Remote vs On-site (t-test + effect size)
 
-Top 10 Highest Paid Employees in Each Department
+14.	Top 10 Highest Paid Employees in Each Department
 
-Departments with the Highest Attrition Rate (Resigned %)
+15.	Departments with the Highest Attrition Rate (Resigned %)
+
 
 🛠️ Technologies Used
 
