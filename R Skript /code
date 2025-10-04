@@ -1,0 +1,580 @@
+# ------------------------------------------------------------
+# HR Analytics Project - Employee Dataset (2 Million Records)
+# ------------------------------------------------------------
+# This script analyzes HR data from a multinational corporation (MNC).
+# It covers 15 key business questions related to:
+#   - Workforce distribution
+#   - Salary analysis
+#   - Performance evaluation
+#   - Attrition trends
+#
+# Each section (Q1–Q15) answers one specific HR question using R.
+# We use tidyverse (dplyr, ggplot2), data wrangling, and visualization
+# techniques to provide both statistical insights and plots.
+#
+# Dataset: HR_Data (2M observations × 12 variables)
+# ------------------------------------------------------------
+
+## Libraries 
+
+library(gridExtra)
+library(dplyr)
+library(tidyverse)
+library(stringr)
+install.packages("rworldmap")
+library(rworldmap)
+install.packages("countrycode")
+library(countrycode)
+library(lubridate)
+library(scales)
+install.packages("effsize")
+ library(effsize)
+options(scipen = 999) ## # Turn off scientific notation globally
+
+# Reading the csv Files from the loacl Desktop
+
+HR_Data <- read.csv("C:/Users/49159/Desktop/Profile Motawi/Second Project R/HR_Data_MNC_Data Science Lovers.csv")
+View(HR_Data)
+str(HR_Data)
+summary(HR_Data)
+
+head(HR_Data)
+tail(HR_Data)
+
+Job.Title <- unique(HR_Data$Job_Title)
+Job.Title
+
+
+### Summary different Variables
+
+summary(HR_Data$Performance_Rating)
+summary(HR_Data$Experience_Years)
+summary(HR_Data$Salary_INR)
+
+### Check  Date Format 
+
+str(HR_Data$Hire_Date)
+
+###### Check Any outlines in the Data
+
+Qu <- quantile(HR_Data$Salary_INR) ### Show the Quantile Q1, Q2, Q3
+Qu
+
+Q1 <- quantile(HR_Data$Salary_INR, 0.25, na.rm = TRUE) ## Quantile 1
+Q1
+
+Q3 <- quantile(HR_Data$Salary_INR, 0.75, na.rm=TRUE) ##  Quantile 3
+Q3
+
+
+IQR.Value <- IQR(HR_Data$Salary_INR) ### Quantile 3 - Quantile 1
+IQR.Value
+
+##### check the Lower and Upper Bounds
+
+Lower.Bound <- Q1 - 1.5 * IQR.Value
+Lower.Bound
+
+Upper.bound <- Q3 + 1.5 * IQR.Value
+Upper.bound
+
+outliers <- HR_Data[HR_Data$Salary_INR < Lower.Bound |HR_Data$Salary_INR >Upper.bound,]
+
+## Plotting the Outliers
+
+ggplot(HR_Data, aes(y = Salary_INR)) +
+  geom_boxplot(outlier.colour = "red", outlier.size = 0.5) +
+  labs(title = "Outliers in Salary Distribution",
+       y = "Salary (INR)")+
+  theme_bw()
+
+### Start Answering the 15 questions Regarding the Data
+
+## Q1: Distribution of Employee Status (Active, Resigned, Retired, Terminated).
+
+Emp.status <- unique(HR_Data$Status)
+Emp.status
+status.dist <- HR_Data %>% 
+  group_by(Status) %>%
+  summarise(count = n()) %>%
+  mutate(Percentage = round(count / sum(count)*100,2))
+
+print(status.dist)  
+
+## Plot the Status.dist
+
+Plot_status.dist <- {ggplot(status.dist, aes(x = Status, y = count, fill = Status))+
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(count,"(", Percentage, "%)")), 
+            vjust = -0.5, size = 3) +
+  labs(title = "Distribution of Employee Status", 
+       x = "Employee Status", y = "Number of Employee") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(), legend.position = "none")
+}
+
+Plot_status.dist
+
+##Q2: Distribution of Work Modes (On-site, Remote).
+
+Work.mode <- unique(HR_Data$Work_Mode)
+Work.mode
+
+Workmode.dist <- HR_Data %>%
+  group_by(Work_Mode)%>%
+  summarise(count = n(), .groups = "drop")%>%
+  mutate(Percentage = round(count / sum(count) * 100,2 ))
+print(Workmode.dist)
+
+Plot_Workmode.dist <- {ggplot(Workmode.dist, aes(x= "", y = count, fill = Work_Mode)) + 
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = paste0(Percentage,"%")),
+            position = position_stack(vjust = 0.5), 
+            color = "white", size = 5)+
+  labs(title = "Distribution of Work Mode") +
+  theme_void()
+}
+
+Plot_Workmode.dist
+
+## Q3: How many employees are there in each department?
+
+Dep.name <- unique(HR_Data$Department)
+Dep.name # Department Names
+
+
+Employee.Dep.dist <- HR_Data %>%
+  group_by(Department)%>%
+  summarise(count =n()) %>%
+  arrange(desc(count))
+print(Employee.Dep.dist)
+
+Plot_Employee.Dep <- {ggplot(Employee.Dep.dist,aes(x = reorder(Department, -count), y = count, fill = Department))+
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = count), vjust = -0.5, size =3) +
+  labs(title = "Employees per Department", x = " Department", y = "Number of Employee") +
+  theme(panel.grid = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+}
+
+Plot_Employee.Dep  
+
+## Q4: What is the average salary by Department?
+
+Department.salary.Avg <- HR_Data %>%
+  group_by(Department)%>%
+  summarise(Salary_Avg = round(mean(Salary_INR,na.rm = TRUE), 2)) %>%
+  arrange(desc(Salary_Avg))
+
+print(Department.salary.Avg) 
+
+Plot_Dept_salary_Avg <- {ggplot(Department.salary.Avg,aes(x = reorder(Department, - Salary_Avg), y = Salary_Avg, fill = Department)) + 
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Salary_Avg), vjust = -0.5 , size = 3) +
+  labs(title = "Average Salary by Department", x = "Department", y = " Average Salary") +
+  theme_minimal() + 
+  theme(panel.grid = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+}
+
+Plot_Dept_salary_Avg
+
+### Plot Outlier salary distribution by Department.
+
+#Median (horizontal line inside the box)
+
+#Interquartile range (IQR) (the box itself: Q1–Q3)
+
+#Whiskers (range of “normal” salaries)
+
+#Outliers (red dots beyond whiskers)
+
+Plot_Outlier <- {ggplot(HR_Data, aes(x = Department, y = Salary_INR, fill = Department)) +
+  geom_boxplot(outlier.colour = "red", alpha = 0.6) +
+  stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "blue") +
+  labs(title = "Salary Distribution by Department (Median + Mean)",
+       x = "Department", y = "Salary (INR)") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        legend.position = "none")
+}
+
+Plot_Outlier
+
+## Q5: Which job title has the highest average salary?
+
+job_Avg_Salary <- HR_Data %>%
+  group_by(Job_Title) %>%
+  summarise(JobSalaryAvg = round(mean(Salary_INR, na.rm = TRUE), 2)) %>%
+  arrange(desc(JobSalaryAvg))
+head(job_Avg_Salary, 10)
+top_job <- job_Avg_Salary %>% slice(1)
+print(top_job) ## IT Manager     2098156
+
+Plot_job_Avg_Salary <- {ggplot(head(job_Avg_Salary, 10), 
+       aes(x = reorder(Job_Title, JobSalaryAvg), y = JobSalaryAvg, fill = Job_Title)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = JobSalaryAvg), hjust = -0.5, size = 3) +
+  coord_flip() +
+  labs(title = "Top 10 Job Titles by Average Salary", 
+       x = " Job Title", y = "Average Salary (INR)") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(), legend.position = "none")
+}
+
+Plot_job_Avg_Salary
+
+##Q6: What is the average salary in different Departments based on Job Title?
+
+avg_salary_dep_Job <- HR_Data %>% 
+  group_by(Department, Job_Title) %>%
+  summarise(Avg_Salary = round(mean(Salary_INR, na.rm = TRUE), 2),
+            .groups = "drop") %>%
+  arrange(Department, desc(Avg_Salary))
+head(avg_salary_dep_Job, 10)
+View(avg_salary_dep_Job)
+
+Plot_avg_salary_dep_Job <- {ggplot(avg_salary_dep_Job, aes(x = Department, y = Avg_Salary, fill = Job_Title)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = paste0(Job_Title, " - ", Avg_Salary)), position = position_dodge(width = 0.9), vjust = -0.3,
+            angle = 90, size = 3) +
+  labs(title = "Average Salary by Department & Job Title",
+       x = "Department", y = "Average Salary (INR)") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+}
+
+Plot_avg_salary_dep_Job
+
+## Q7: How many employees Resigned & Terminated in each department?
+
+exit_dept <- HR_Data %>%
+  filter(Status %in% c("Resigned", "Terminated")) %>%
+  group_by(Department,Status) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  arrange(Department, desc(count))
+print(exit_dept)
+
+Plot_exit_dept <- {ggplot(exit_dept,aes(x = Department, y = count, fill = Status )) +
+    geom_bar(stat = "identity", position = "dodge") +
+    geom_text(aes(label= count), position = position_dodge(width = 0.9), vjust = -0.3, size = 3) +
+    labs(title = "Resigned and Terminated Empoyees per Department",
+         x = "Department", y = "Number of Employees") +
+    theme_minimal() +
+    theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+Plot_exit_dept
+
+##Q8: How does salary vary with years of experience?
+
+summary(HR_Data$Experience_Years)
+
+Y_of_Exp_Salary <- HR_Data %>%
+  group_by(Experience_Years) %>%
+summarise(avg_salary = round(mean(Salary_INR, na.rm =TRUE), 2),
+          median_salar = round(median(Salary_INR, na.rm = TRUE),2),
+          count = n())
+head(Y_of_Exp_Salary,15) # Preview 
+
+
+
+## Plotting the Salary vs. Years of Experience
+
+Plot_Y_of_Exp_Salary <- { ggplot(Y_of_Exp_Salary,aes(x =Experience_Years, y = avg_salary)) +
+    geom_line(color = "darkgreen", size = 1) +
+    geom_point(color = "red", size = 3) +
+    labs(title = " Average Salary vs. Years of Experience", x = "Years of Experience", y = "Salary (INR)") +
+    theme_minimal() +
+    theme(panel.grid = element_blank())
+  
+}
+
+Plot_Y_of_Exp_Salary
+
+##excluding outliers will give a cleaner relationship between salary and experience.
+
+HR_No_Outliers <- HR_Data %>% 
+  filter(Salary_INR >= Lower.Bound & Salary_INR<= Upper.bound)
+exp_salary_clean <- HR_No_Outliers %>%
+  group_by(Experience_Years) %>%
+  summarise(Avg_Salary = round(mean(Salary_INR, na.rm = TRUE),2),
+median_salary =round(median(Salary_INR, na.rm= TRUE), 2),
+count = n())
+
+Plot_exp_salary_clean <- {ggplot(exp_salary_clean, aes(x = Experience_Years, y = Avg_Salary)) +
+  geom_line(color = "darkgreen", size = 1) +
+  geom_point(color = "red", size = 3) +
+  labs(title = "Average Salary vs.Years of Experience (Outliers Removed)",
+       x = " Years Of Experience", y = " Average Salary (INR)") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+}
+
+Plot_exp_salary_clean
+
+
+grid.arrange(Plot_Y_of_Exp_Salary,Plot_exp_salary_clean, ncol =  1 )
+
+
+##Q9: What is the average performance rating by department?
+
+Avg_Perf_Dept <- HR_Data %>%
+  group_by(Department) %>%
+  summarise(Avg_Performance = round(mean(Performance_Rating, na.rm = TRUE),2),
+            median_Performance = round(median(Performance_Rating, na.rm = TRUE),2),
+            count = n()) %>%
+  arrange(desc(Avg_Performance))
+print(Avg_Perf_Dept)
+
+Plot_Avg_Perf_Dept <- { ggplot(Avg_Perf_Dept,aes(x = "", y = Avg_Performance, fill = Department)) +
+    geom_col(width = 1) +
+    coord_polar(theta = "y") +
+    labs(title = "Average Performance Rating by Department") +
+    geom_text(aes(label = Avg_Performance),
+              position = position_stack(vjust = 0.5),
+              color = "white", size = 4) +
+    theme_void()
+    
+}
+
+Plot_Avg_Perf_Dept
+
+Plot_Perf_Dept <- {ggplot(HR_Data, aes(x = Department, y = Performance_Rating, fill = Department)) +
+  geom_boxplot(outlier.colour = "red", alpha = 0.6) +
+  labs(title = "Performance Rating Distribution by Department",
+       x = "Department", y = "Performance Rating") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")
+}
+
+Plot_Perf_Dept
+
+grid.arrange(Plot_Avg_Perf_Dept, Plot_Perf_Dept, ncol= 1)
+
+##Q10: Which Country has the highest concentration of employees?
+
+## First Step Extract Country
+
+HR_Data <- HR_Data %>%
+  mutate(Country = str_trim(str_sub(Location,str_locate(Location, ",")[,2] + 1)))
+
+Country_dist <- HR_Data %>%
+  group_by(Country) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+head(Country_dist, 10)
+
+Plot_Country_dist <- { ggplot(head(Country_dist,10),
+                              aes(x = reorder(Country,-count), y = count, fill = Country)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = count), vjust = -0.5, size = 3)+
+    labs(title = "Top 10 Countries by Employee Count", x = "Country", y = "Concentration of Employees") +
+    theme_minimal() +
+    theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1),
+          legend.position = "none")
+    
+}
+
+Plot_Country_dist 
+
+############## Plot Country in world Map
+
+country_dist_iso <- Country_dist %>%
+  mutate(iso3 = countrycode(Country, origin = "country.name", destination = "iso3c"))
+
+sPDF <- joinCountryData2Map(country_dist_iso,
+                            joinCode       = "ISO3",
+                            nameJoinColumn = "iso3")
+
+mapCountryData(sPDF,
+               nameColumnToPlot = "count",
+               mapTitle         = "Employee Distribution by Country")
+
+
+head(country_dist_iso %>% filter(is.na(iso3)))
+
+## Q11: Is there a correlation between performance rating and salary?
+
+test_cor <- cor.test(HR_Data$Performance_Rating, HR_Data$Salary_INR,use = "complete.obs", method = "pearson")
+test_cor
+
+set.seed(123)
+sample_data <- HR_Data %>% sample_n(20000)
+
+
+ggplot(sample_data, aes(x = Performance_Rating, y = Salary_INR)) +
+  geom_jitter(alpha = 0.3, color = "steelblue") +   # jitter = spread points a little
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Correlation between Performance Rating and Salary",
+       x = "Performance Rating", y = "Salary (INR)") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+
+##Q12: How has the number of hires changed over time (per year)?
+
+summary(HR_Data$Hire_Date)
+str(HR_Data$Hire_Date)
+
+
+hires_year <- HR_Data %>%
+  mutate(Hire_Year = year(Hire_Date)) %>%
+  group_by(Hire_Year) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  arrange(Hire_Year)
+
+print(head(hires_year, 16))   # preview first 10 years
+
+Plot_hires_years <- {ggplot(hires_year,aes(x = Hire_Year, y = count)) +
+    geom_line(color = "darkgreen", size = 1) +
+    geom_point(color = "red", size = 3) +
+    geom_smooth(method = "loess", se = FALSE, color ="red",linetype = "dashed") +
+    labs(title = "Number of Hires per Year", x = "Year", y = "Number of Hires" ) +
+    theme_minimal() +
+    theme(panel.grid = element_blank())
+}
+
+Plot_hires_years
+
+## Q.13) Compare salaries of Remote vs. On-site employees — is there a significant difference ?
+
+###1)  summary (counts, mean, median).
+
+WM_Sal_sum <- HR_Data %>%
+  filter(!is.na(Salary_INR), !is.na(Work_Mode)) %>%
+  group_by(Work_Mode) %>%
+summarise(
+  n = n(),
+  mean_Sal = mean(Salary_INR),
+  median_Sal = median(Salary_INR),
+  sd_Sal = sd(Salary_INR),
+ .groups = "drop"
+)
+WM_Sal_sum
+
+##Plot
+
+Plot_wm_sal_sum <- {ggplot(HR_Data,aes(x = Work_Mode, y = Salary_INR, fill = Work_Mode)) +
+    geom_boxplot(outlier.color = "red", alpha = 0.7) +
+    stat_summary(fun = mean, geom = "point",shape = 21, size = 3, fill = "white")+
+    scale_y_continuous(labels = comma) +
+    labs(title = "Salary by Work Mode", x = " Work Mode", y = "Salary(INR)") +
+    theme_minimal() +
+    theme(panel.grid = element_blank(),legend.position = "none")
+
+}
+Plot_wm_sal_sum 
+
+
+# Ensure factor with exactly two levels:
+wm2 <- HR_Data %>%
+  filter(Work_Mode %in% c("On-site","Remote"), !is.na(Salary_INR)) %>%
+  mutate(Work_Mode = factor(Work_Mode)) %>%
+  mutate(Work_Mode = droplevels(Work_Mode))
+
+##Statistical test — Welch two-sample t-test
+
+t_out <- t.test(Salary_INR ~ Work_Mode, data = wm2, var.equal = FALSE)  # Welch t-test
+t_out
+
+d_out <- cohen.d(Salary_INR ~ Work_Mode, data = wm2, hedges.correction = TRUE)
+d_out
+
+## Robustness: remove outliers and re-test
+
+Q1  <- quantile(wm2$Salary_INR, 0.25, na.rm = TRUE)
+Q3  <- quantile(wm2$Salary_INR, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+lo  <- Q1 - 1.5*IQR
+hi  <- Q3 + 1.5*IQR
+
+wm2_clean <- wm2 %>% filter(Salary_INR >= lo, Salary_INR <= hi)
+
+t.test(Salary_INR ~ Work_Mode, data = wm2_clean, var.equal = FALSE)
+cohen.d(Salary_INR ~ Work_Mode, data = wm2_clean, hedges.correction = TRUE)
+
+
+## Q14: Find the top 10 employees with the highest salary in each department.
+top10_each_dept <- HR_Data %>%
+  group_by(Department) %>%
+  arrange(desc(Salary_INR),.by_group = TRUE) %>%
+  slice_head(n = 10) %>%
+  ungroup()
+print(top10_each_dept)
+
+top10_each_dept %>% 
+  select(Department, Full_Name, Job_Title, Salary_INR)
+
+
+departments <- unique(top10_each_dept$Department)
+
+#### change the  dept = "........" to show the plot for each department 
+
+
+dept = "Marketing"
+
+ggplot(filter(top10_each_dept, Department == dept),
+              aes(x = reorder(Full_Name, Salary_INR), y = Salary_INR, fill = Job_Title)) +
+    geom_col() +
+    coord_flip() +
+    labs(title = paste("Top 10 Highest Paid Employees in", dept, "Department"),
+         x = "Employee", y = "Salary (INR)") +
+    theme_minimal() +
+    theme(panel.grid = element_blank(),
+          axis.text.y = element_text(size = 6))
+
+
+max_ties <- HR_Data %>%
+  group_by(Department) %>%
+  summarise(
+    max_sal = max(Salary_INR, na.rm = TRUE),
+    n_at_max = sum(Salary_INR == max_sal, na.rm = TRUE)
+  ) %>%
+  arrange(desc(n_at_max))
+
+max_ties
+
+### Ties are real - Pay bands/grade caps → many employees share the same max band.
+
+HR_Data %>%
+  filter(Department == "Operations") %>%
+  arrange(desc(Salary_INR)) %>%
+  select(Employee_ID, Full_Name, Job_Title, Salary_INR) %>%
+  head(10)
+
+### Q15: Identify departments with the highest attrition rate (Resigned %).
+### Step 1 — Calculate attrition per department
+
+###Attrition rate = (Resigned employees ÷ Total employees in department) × 100
+attrition_rate <- HR_Data %>%
+  group_by(Department) %>%
+  summarise(
+    total = n(),
+    resigned = sum(Status == "Resigned", na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(attrition_pct = round((resigned / total) * 100, 2)) %>%
+  arrange(desc(attrition_pct))
+
+print(attrition_rate)
+
+## Plotting 
+ 
+ggplot(attrition_rate, aes(x = "", y = attrition_pct, fill = Department)) +
+  geom_col(width = 1, color = "black") +  # Black borders for clean slices
+  coord_polar(theta = "y", start = 0) +   # start angle = top
+  geom_text(aes(label = paste0(Department, "\n", attrition_pct, "%")),
+            position = position_stack(vjust = 0.5),
+            color = "darkgreen", fontface = "bold", size = 4) +
+  scale_fill_brewer(palette = "Set3") +   # nice professional palette
+  labs(title = "Attrition Rate by Department (Resigned %)") +
+  theme_void() +
+  theme(
+    legend.position = "none",       
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")  # centered bold title
+  )
